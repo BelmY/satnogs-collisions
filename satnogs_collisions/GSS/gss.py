@@ -23,23 +23,28 @@ def _time_range_intersection(sat1_rise, sat1_set, sat2_rise, sat2_set):
         return low,high
     return
 
-def _compute_doppler_shift(sat, freq):
+def _compute_doppler_shift(sat, observer, freq, rise_time):
     """
     Computes the Maximum Doppler shift in the frequency at the ground station.
     Returns the Max and min doppler shifted frequencies received at the GroundStation.
     
     Arguments
     ===============================================
-    sat: Ephem instance of the Satellites wrt the observer
-    freq: Downlink frequencies transmitted by the satellite.
+    sat: Ephem instance of satellite
+    observer: Ephem instance of Observer
+    freq: List of downlink frequencies transmitted by the satellite
+    rise_time: Rise time of satellite's next pass wrt the observer
     """
+    observer.date = rise_time
+    sat.compute(observer)
     rel_vel = sat.range_velocity
+    # Maximum shift observed at Rise(/Set) time
     shift = (rel_vel/C)*(freq)
     freq_low_high = []
     # Append max and min frequencies shift to the list
     for elem in freq:
         freq_low_high.append(elem - shift)
-        freq_low_high.append(elem)
+        freq_low_high.append(elem + shift)
     return freq_low_high
 
 def _in_freq_range(frequencies1, frequencies2, range):
@@ -105,24 +110,25 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
         # Set the date and time of the oberserver
         observer.date = e
 
-        # Compute the next pass of the satellite over the observer
-        satA.compute(observer)
-        satB.compute(observer)
+        # `next_pass` computes the rise_time, Rise azimuth ,maximum_atlitude,
+        # max_altitude_time, set_time and set Azimuth of the Satellite.
+        infoA = observer.next_pass(satA)
+        infoB = observer.next_pass(satB)
 
         # Check if the satellites' have a period of intersection
-        intersection_range = _time_range_intersection(satA.rise_time, satA.set_time, satB.rise_time, satB.set_time)
+        intersection_range = _time_range_intersection(infoA[0], infoA[4], infoB[0], infoB[4])
 
         if intersection_range is not None:
             # Compute the Maximum and minimum Doppler frequencies
             # for all the frequencies for both the satellites
-            freq1_low_high = _compute_doppler_shift(satA, sat1.get_frequencies())
-            freq2_low_high = _compute_doppler_shift(satB, sat2.get_frequencies())
+            freq1_low_high = _compute_doppler_shift(satA, observer, sat1.get_frequencies(), infoA[0])
+            freq2_low_high = _compute_doppler_shift(satB, observer, sat2.get_frequencies(), infoB[0])
             if (_in_freq_range(freq1_low_high, freq2_low_high, frequency_range)):
                 if (time_period):
                     return True
                 time_periods.append(intersection_range)
         # Check for every increment after the minimum `set_time`
-        e = ephem.Date(e + min(satA.set_time, satB.set_time) + ephem.minute)
+        e = ephem.Date(e + min(infoA[4], infoB[4]) + ephem.minute)
 
     # Return True or time_periods depending on the passed argument `time_period`
     if (len(time_periods) == 0):
@@ -158,5 +164,5 @@ def detect_RF_collision_of_satellite_over_groundstation(ground_station,
     rf_collisions = []
     for sat in satellites:
             rf_collisions.append(_check_collision(ground_station, main_sat, sat, 
-                    date_time_range, frequency, time_period=time_period))
-    return
+                    date_time_range, frequency_range, time_period=time_period))
+    return rf_collisions
