@@ -50,3 +50,6 @@ class Satellite:
 
     def get_frequencies(self):
         return self.frequencies
+    
+    def get_name(self):
+        return self.tle[0]
