@@ -15,26 +15,19 @@ def _set_frequencies(norad_id):
     return list(downlink_lows)
 
 class Satellite:
-    '''
-    Class for the satellies objects.
-    
-    Arguments to the constructor
-    =================================
-    norad_id: Represents the norad_cat_ID of the satellite. Must be an integer
-    tle: A 3-tuple containing the TLE of the Satellite
-    frequency: The transmitting frequencies of the Satellite.
+    """Class for the Satellite objects.
 
-    Examples
-    ==================
-    >> from satnogs_collisions import Satellite
-    >> sat = Satellite(27844)
-    >> sat.get_tle()
-    ('CUTE-1 (CO-55)', '1 27844U 03031E   20161.76401087  .00000028  00000-0  32030-4 0  9997', 
-    '2 27844  98.6813 169.6158 0011130  79.4057 280.8373 14.22241423879006')
-    >> sat.get_frequencies()
-    437470000
-    '''
-    def __init__(self, norad_id=None, tle=[], frequency=None):
+    :param norad_id: Satellite NORAD ID, defaults to None
+    :type norad_id: int, optional
+    :param tle: Two line elemnet set, defaults to []
+    :type tle: list, optional
+    :param frequencies: Transmitting frequencies of the Satellite, defaults to None
+    :type frequencies: list, optional
+    :raises ValueError: Missing values
+    """
+    def __init__(self, norad_id=None, tle=[], frequencies=None):
+        """Constructor method
+        """
         self.norad_id = norad_id
         if (len(tle) == 3 and frequencies):
             self.tle = tle

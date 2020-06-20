@@ -1,4 +1,4 @@
-from .ground_stations import GroundStation
+from .ground_station import GroundStation
 
 __all__ = [
     GroundStation

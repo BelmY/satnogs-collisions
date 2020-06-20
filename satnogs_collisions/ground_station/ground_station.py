@@ -7,25 +7,19 @@ def _set_params(ground_station_id):
     return data[0]['lat'], data[0]['lng'], data[0]['altitude']
 
 class GroundStation:
-    '''
-    Class for the ground stations
-    
-    Arguments to the constructor 
-    ============================================
-    ground_station_id: An integer indicating the 'id' of the desired Ground Station
-    coordinates: A 2-tuple/list giving the coordinates of the Ground Station
-    elevation: Elevation of the ground station (in meters)
+    """Class for Ground-stations
 
-    Examples
-    ==============================================
-    >> from satnogs_collisions import GroundStation
-    >> gs = GroundStation(2)
-    >> gs.get_coordinates()
-    [39.236, -86.305]
-    >> gs.get_elevation()
-    280
-    '''
+    :param ground_station_id: ID of the ground Station, defaults to None
+    :type ground_station_id: int, optional
+    :param coordinates: coordinates of the Ground Station, defaults to []
+    :type coordinates: list, optional
+    :param elevation: elevation of theGround Station, defaults to None
+    :type elevation: int, optional
+    :raises ValueError: Missing Values
+    """
     def __init__(self, ground_station_id=None, coordinates=[], elevation=None):
+        """Constructor method
+        """
         self.ground_station_id = ground_station_id
         if (len(coordinates) == 2 and elevation):
             self.latitude = coordinates[0]

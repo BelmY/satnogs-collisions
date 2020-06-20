@@ -6,16 +6,18 @@ from satnogs_collisions.ground_station import GroundStation
 C = 299792458.0
 
 def _time_range_intersection(sat1_rise, sat1_set, sat2_rise, sat2_set):
-    """
-    Computes the intersection of the rise and set time intervals of the 2 satellites.
-    Returns None if there is no intersection.
+    """Computes the intersection of the rise and set time intervals of the 2 satellites.
 
-    Arguments
-    ============
-    sat1_rise: Rise time of the first satellite
-    sat1_set: Set time of the first satellite
-    sat2_rise: Rise time of the second satellite
-    sat2_set: Set time of the second satellite
+    :param sat1_rise: Rise time of Satellite 1
+    :type sat1_rise: datetime/Ephem.Date instance
+    :param sat1_set: Set time of Satellite 1
+    :type sat1_set: datetime/Ephem.Date instance
+    :param sat2_rise: Rise time of Satellite 2
+    :type sat2_rise: datetime/ephem.Date instance
+    :param sat2_set: Set time of Satellite 2
+    :type sat2_set: datetime/ephem.Date instance
+    :return: time range intersection
+    :rtype: tuple
     """
     low = max(sat1_rise, sat2_rise)
     high = min(sat1_set, sat2_set)
@@ -24,24 +26,26 @@ def _time_range_intersection(sat1_rise, sat1_set, sat2_rise, sat2_set):
     return
 
 def _compute_doppler_shift(sat, observer, freq, rise_time, set_time):
-    """
-    Computes the Maximum Doppler shift in the frequency at the ground station.
+    """Computes the Maximum Doppler shift in the frequency at the ground station.
     Returns the Max and min doppler shifted frequencies received at the GroundStation.
-    
-    Arguments
-    ===============================================
-    sat: Ephem instance of satellite
-    observer: Ephem instance of Observer
-    freq: List of downlink frequencies transmitted by the satellite
-    rise_time: Rise time of satellite's next pass wrt the observer
-    set_time: Set time of satellite's next pass wrt the observer
+
+    :param sat: Satellite
+    :type sat: instance of ephem satellite
+    :param observer: Ground Station / Observer
+    :type observer: Instance of ephem ground station
+    :param freq: Satellite transmitting frequencies
+    :type freq: list
+    :param rise_time: Rise time of Satellite
+    :type rise_time: datetime/ephem.Date instance
+    :param set_time: Set time of Satellite
+    :type set_time: datetime/ephem.Date instance
     """
      # Maximum shift observed at Rise time
     observer.date = rise_time
     sat.compute(observer)
     rel_vel = sat.range_velocity
     shift_r = (rel_vel/C)*(freq)
-     # Maximum shift observed at Rise time
+     # Maximum shift observed at Set time
     observer.date = set_time
     sat.compute(observer)
     rel_vel = sat.range_velocity
@@ -49,25 +53,13 @@ def _compute_doppler_shift(sat, observer, freq, rise_time, set_time):
     # Append max and min frequencies shift to the list
     freq_low_high = []
     for elem in freq:
-        freq_low_high.append(elem - shift_r)
+        freq_low_high.append(elem + shift_r)
         freq_low_high.append(elem + shift_s)
     return freq_low_high
 
 def _in_freq_range(frequencies1, frequencies2, range):
-    """
-    Checks if the frequencies of both the satellites fall under the given range.
-
-    Arguments
-    =======================================
-    frequencies1, frequencies2: list of the low and high doppler shifted frequencies of the satellites
-    range = Given frequecny range in Hz
-    """
-    # Swap according to the smaller list.
-    if (len(frequencies2) < len(frequencies1)):
-        temp = frequencies[2]
-        frequencies[2] = frequencies[1]
-        frequencies[1] = temp
-    
+    """Checks if the frequencies of both the satellites fall under the given range.
+    """    
     # compare all the frequencies
     for freq1 in frequencies1:
         for freq2 in frequencies2:
@@ -76,18 +68,22 @@ def _in_freq_range(frequencies1, frequencies2, range):
     return False   
 
 def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_range, time_period=False):
-    """
-    Checks and computes the possible collision between sat1 and sat2
+    """Checks and computes the possible collision between Sat1 and Sat2
 
-    Arguments
-    =======================================================
-    ground_station: Instance of the `GroundStation` class
-    sat1: First satellite, instance of the `Satellite` class
-    sat2: Second satellite, instance of the `Satellite` class
-    date_time_range : datatime list of size 2 representing the desirable interval.
-    frequency_range : real rumber range of the frequency (in Hz)
-    time_period: Set to true when the user desires to compute the time periods instead of 
-                just checking the RF Collisions.
+    :param ground_station: Ground Station object
+    :type ground_station: Instance of `GroundStation`
+    :param sat1: Satellite 1
+    :type sat1: Instance of `Satellite`
+    :param sat2: Satellite 2
+    :type sat2: Instance of `Satellite`
+    :param date_time_range: User specified Time interval
+    :type date_time_range: datetime
+    :param frequency_range: frequency in Hz
+    :type frequency_range: int
+    :param time_period: , defaults to False
+    :type time_period: bool, optional
+    :return: bool/ Array of time periods if there is a collision
+    :rtype: bool/list
     """
 
     # Extract ground coordinates
@@ -138,34 +134,29 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
 
     # Return True or time_periods depending on the passed argument `time_period`
     if (len(time_periods) == 0):
-        return False
+        return [] if time_period else False
     return time_periods
 
 
 def detect_RF_collision_of_satellite_over_groundstation(ground_station, 
                     satellites, main_sat, date_time_range, frequency_range=30000, time_period=False):
-    """
-    Detects the RF collisions that main satellite will have
-    with other satellites over the ground station.
+    """Detects RF collisions that main satellite will have with 
+    other satellites over a ground station
 
-    Returns
-    ===================
-    If time_period = `True`:
-    * Returns that time periods of all (main_sat, other_sat) if an RF collision occurs
-    * The pairs value is set to None in case of no collision
-
-    If time_period = `False`:
-    * Returns an array of  booleans indicating if a collision is possible.
-
-    Arguments
-    ==========================================================
-    ground_station : instance of the object `GroundStation`
-    satellites : array of instances of the object `Satellite`
-    main_sat : instance of object `Satellite`
-    date_time_range : datatime list of size 2 representing the desirable interval.
-    frequency_range : real rumber range of the frequency (in KHz)
-    time_period: Set to true when the user desires to compute the time periods instead of 
-                just checking the RF Collisions.
+    :param ground_station: Ground Station
+    :type ground_station: Instance of `GroundStation`
+    :param satellites: List of Satellites
+    :type satellites: list
+    :param main_sat: Satellite
+    :type main_sat: Instance of `Satellite`
+    :param date_time_range: User defined date-time range
+    :type date_time_range: datetime
+    :param frequency_range: Frequency in Hz, defaults to 30000
+    :type frequency_range: int, optional
+    :param time_period: Set to True if desired to compute the time periods of intersection, defaults to False
+    :type time_period: bool, optional
+    :return: list of all collisions
+    :rtype: list
     """
     rf_collisions = []
     for sat in satellites:
@@ -175,15 +166,12 @@ def detect_RF_collision_of_satellite_over_groundstation(ground_station,
 
 def detect_RF_collision_of_satellite_over_groundstations(ground_stations, 
                     satellites, main_sat, date_time_range, frequency_range=30000, time_period=False):
-    """
-    Detects the RF collisions that main satellite will have
-    with other satellites over each ground station.
+    """Detects RF collisions that main satellite will have with 
+    other satellites over every ground station
 
-    Returns: A dictionary of that contains collision over each ground station.
-
-    Arguments
-    ==========================================================
-    ground_stations : List of instances of the object `GroundStation`
+    :param ground_station: List of `GroundStation`s
+    :return: ditcionary contaning all collisions
+    :rtype: dictionary
     """
     all_rf_collisions = {}
     # Ground Station index for the dictionary.
@@ -199,16 +187,13 @@ def detect_RF_collision_of_satellite_over_groundstations(ground_stations,
 
 def detect_RF_collision_of_satellites_over_groundstation(ground_station, 
                     satellites, date_time_range, frequency_range=30000, time_period=False):
-    """
-    Detects the RF collisions that every pair of satellite will
-    have with each other over the ground station.
+    """Detects RF collisions that every pair of satellites will have with 
+    each other over a ground station
 
-    Returns: A dictionary of <satellite_name, List> which contains collisions over a groundstation
-
-    Arguments
-    ==========================================================
-    ground_station : instance of the object `GroundStation`
-    satellites : List of instances of the object `Satellite`
+    :param ground_station: `GroundStation`s
+    :param satellites: List of `Satellites`s
+    :return: ditcionary contaning all collisions
+    :rtype: dictionary
     """
     all_rf_collisions = {}
     for main_sat in satellites:
@@ -223,16 +208,13 @@ def detect_RF_collision_of_satellites_over_groundstation(ground_station,
 
 def detect_RF_collision_of_satellites_over_groundstations(ground_stations, 
                     satellites, date_time_range, frequency_range=30000, time_period=False):
-    """
-    Detects the RF collisions that each pair of satellite will have
-    with one another over  each ground station.
+    """Detects RF collisions that every pair of satellites will have with 
+    each other over every ground station
 
-    Returns: A dictionary <ground_station_name, dictionary> that contains RF collisions of all GSS pairs.
- 
-    Arguments
-    ==========================================================
-    ground_stations : List of instances of the object `GroundStation`
-    satellites : List of instances of the object `Satellite`
+    :param ground_station: List of `GroundStation`s
+    :param satellites: List of `Satellites`s
+    :return: ditcionary contaning all collisions
+    :rtype: dictionary
     """
     all_rf_collisions = {}
     # Ground Station index for the dictionary.
@@ -245,50 +227,45 @@ def detect_RF_collision_of_satellites_over_groundstations(ground_stations,
 
 def compute_RF_collision_of_satellite_over_groundstation(ground_station, 
                     satellites, main_sat, date_time_range, frequency_range=30000):
-    """
-    Computes the time periods of the RF collisions that main satellite will have
-    with other satellites over the ground station.
+    """Computes RF collisions that main satellite will have with 
+    other satellites over a ground station
 
-    Arguments
-    ==========================================================
-    ground_station : instance of the object `GroundStation`
-    satellites : array of instances of the object `Satellite`
-    main_sat : instance of object `Satellite`
-    date_time_range : datatime list of size 2 representing the desirable interval.
-    frequency_range : real rumber range of the frequency (in KHz)
+    :param ground_station: Ground Station
+    :type ground_station: Instance of `GroundStation`
+    :param satellites: List of Satellites
+    :type satellites: list
+    :param main_sat: Satellite
+    :type main_sat: Instance of `Satellite`
+    :param date_time_range: User defined date-time range
+    :type date_time_range: datetime
+    :param frequency_range: Frequency in Hz, defaults to 30000
+    :type frequency_range: int, optional
+    :return: list of all collisions
+    :rtype: list
     """
     return detect_RF_collision_of_satellite_over_groundstation(ground_station, 
                     satellites, main_sat, date_time_range, frequency_range=frequency_range, time_period=True)
 
 def compute_RF_collision_of_satellite_over_groundstations(ground_stations, 
                     satellites, main_sat, date_time_range, frequency_range=30000):
-    """
-    Computes the time periods of the RF collisions that every pair of satellite will
+    """Computes the time periods of the RF collisions that every pair of satellite will
     have with each other over the ground station.
-
-    Returns: A dictionary which contains the time period of collisions over every ground station.
     """
     return detect_RF_collision_of_satellite_over_groundstations(ground_stations, 
                     satellites, main_sat, date_time_range, frequency_range=frequency_range, time_period=True)
 
 def compute_RF_collision_of_satellites_over_groundstation(ground_station, 
                     satellites, date_time_range, frequency_range=30000, time_period=False):
-    """
-    Computes the time periods of the RF collisions that every pair of satellite will
-    have with each other over the ground station.
-
-    Returns: A dictionary of <satellite_name, List> which contains time periods of RF collisions over a groundstation.
+    """Computes the time periods of the RF collisions that every pair of satellite will
+    have with each other over the ground station. 
     """
     return detect_RF_collision_of_satellites_over_groundstation(ground_station, 
                     satellites, date_time_range, frequency_range=frequency_range, time_period=True)
 
 def Computes_RF_collision_of_satellites_over_groundstations(ground_stations, 
                     satellites, date_time_range, frequency_range=30000, time_period=False):
-    """
-    Computes the time periods of the RF collisions that each pair of satellite will have
+    """Computes the time periods of the RF collisions that each pair of satellite will have
     with one another over  each ground station.
-
-    Returns: A dictionary <ground_station_name, dictionary> that contains time periods of RF RF collisions of all GSS pairs.
     """"
     return detect_RF_collision_of_satellites_over_groundstations(ground_stations, 
                     satellites, date_time_range, frequency_range=frequency_range, time_period=True)
