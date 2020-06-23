@@ -6,7 +6,7 @@ def _set_tle(norad_id):
     return tle
 
 def _set_frequencies(norad_id):
-    response = requests.get("https://db.satnogs.org/api/transmitters/")
+    response = requests.get("https://db.satnogs.org/api/transmitters/?satellite__norad_cat_id=" + str(norad_id))
     data = response.json()
     downlink_lows = set()
     for elem in data:
