@@ -10,14 +10,14 @@ class GroundStation:
     """Class for Ground-stations
 
     :param ground_station_id: ID of the ground Station, defaults to None
-    :type ground_station_id: int, optional
+    :type ground_station_id: int
     :param coordinates: coordinates of the Ground Station, defaults to []
     :type coordinates: list, optional
     :param elevation: elevation of theGround Station, defaults to None
     :type elevation: int, optional
     :raises ValueError: Missing Values
     """
-    def __init__(self, ground_station_id=None, coordinates=[], elevation=None):
+    def __init__(self, ground_station_id, coordinates=[], elevation=None):
         """Constructor method
         """
         self.ground_station_id = ground_station_id
@@ -25,14 +25,14 @@ class GroundStation:
             self.latitude = coordinates[0]
             self.longitide = coordinates[1]
             self.elevation = elevation
-        elif (ground_station_id):
-            self.latitude, self.longitide, self.elevation = _set_params(ground_station_id)
         else:
-            raise ValueError("Values Missing. Must provide either the 'GroundStation ID' or"  
-                                     "the 'coordinates and elevation' of  the ground station")
+            self.latitude, self.longitide, self.elevation = _set_params(ground_station_id)
 
     def get_coordinates(self):
         return (self.latitude, self.longitide)
     
     def get_elevation(self):
         return self.elevation
+    
+    def get_id(self):
+        return self.ground_station_id
