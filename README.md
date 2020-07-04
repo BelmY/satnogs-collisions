@@ -1,7 +1,14 @@
+
 # SatNOGS Collisions #
 
 SatNOGS Collisions calculates physical and radio frequency proximity and collisions of space objects and transmitters.
 
+## Tests
+
+To execute the tests run the following command in the current directory
+```
+$ python3 -m unittest tests/test
+```
 
 ## License
 

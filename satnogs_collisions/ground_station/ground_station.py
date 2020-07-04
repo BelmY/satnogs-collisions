@@ -17,7 +17,7 @@ class GroundStation:
     :type elevation: int, optional
     :raises ValueError: Missing Values
     """
-    def __init__(self, ground_station_id, coordinates=[], elevation=None):
+    def __init__(self, ground_station_id=None, coordinates=[], elevation=None):
         """Constructor method
         """
         self.ground_station_id = ground_station_id

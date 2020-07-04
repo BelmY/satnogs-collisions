@@ -8,8 +8,8 @@ def _check_in_range(dt_range, obv):
     return False
 
 class TestCollisions(unittest.TestCase):
-    def test_gss_1(self):
-        """Observation lies inside start_datetime and end_datetime
+    def test_collision_inside_time_range(self):
+        """Collision lies inside start_datetime and end_datetime
         """
         tle = [
         "44369 - ACRUX-1",
@@ -33,11 +33,10 @@ class TestCollisions(unittest.TestCase):
         observation =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
         observation_range = observation[0][1]['time_period']
         in_range = _check_in_range(dt_range, observation_range)
-
         self.assertEqual(in_range, True)
     
-    def test_gss_2(self):
-        """Observation ends after end_datetime
+    def test_collision_ends_after_endtime(self):
+        """Collision ends after end_datetime
         """
         tle = [
         "29499 - METOP-A",
@@ -64,8 +63,8 @@ class TestCollisions(unittest.TestCase):
         
         self.assertEqual(in_range, True)
     
-    def test_gss_3(self):
-        """Observation begins before start_datetime
+    def test_collision_starts_before_starttime(self):
+        """Collision begins before start_datetime
         """
         tle = [
         "45258 - Phoenix (ASU)",
@@ -92,7 +91,7 @@ class TestCollisions(unittest.TestCase):
         
         self.assertEqual(in_range, True)
     
-    def test_gss_4(self):
+    def test_time_range_inside_collision_range(self):
         """dt_range lies inside Observation range
         """
         tle = [
@@ -122,7 +121,7 @@ class TestCollisions(unittest.TestCase):
         
         self.assertEqual(in_range, True)
     
-    def test_gss_5(self):
+    def test_high_level_observations(self):
         """High level observations
         """
         tle = [
@@ -144,8 +143,7 @@ class TestCollisions(unittest.TestCase):
         coordinates = [24.771, 46.708]
         elevation = 612
 
-        gs = GroundStation(146, coordinates=coordinates, elevation=elevation)
-
+        gs = GroundStation(coordinates=coordinates, elevation=elevation)
 
         dt_range = [dt.datetime(2019, 8, 11, 00, 28), dt.datetime(2019, 8, 11, 00, 48)]
 
@@ -154,3 +152,33 @@ class TestCollisions(unittest.TestCase):
         in_range = _check_in_range(dt_range, observation_range)
 
         self.assertEqual(in_range, True)
+    
+    
+    def test_no_collision_inside_time_range(self):
+        """No Collision occurs in the given time range
+        """
+        tle = [
+        "44359 - TBEX-B",
+        "1 44359U 19036W   19222.47268441  .00037674  00000-0  53867-3 0  9995",
+        "2 44359  28.5237 259.8003 0385299 234.5596 121.8440 15.00094124  6777"
+        ]
+        frequencies = [399968000, 149988000, 437535000, 437485000]
+        main_sat = Satellite(tle=tle, frequencies=frequencies)
+
+        tle = [
+        "43616 - ELFIN B",
+        "1 43616U 18070D   19222.11284429  .00002592  00000-0  68524-4 0  9990",
+        "2 43616  93.0213  25.1996 0019528 104.5693 255.7729 15.38297338 50477"
+        ]
+        frequencies = [437475000, 437475000]
+        other_sat = [Satellite(tle=tle,frequencies=frequencies)]
+
+        coordinates = [24.771, 46.708]
+        elevation = 612
+
+        gs = GroundStation(coordinates=coordinates, elevation=elevation)
+
+        dt_range = [dt.datetime(2019, 8, 11, 00, 55), dt.datetime(2019, 8, 11, 00, 59)]
+
+        observation =  detect_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
+        self.assertEqual(observation[0], False)
