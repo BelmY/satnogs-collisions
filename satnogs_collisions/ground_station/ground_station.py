@@ -28,6 +28,7 @@ class GroundStation:
         else:
             self.latitude, self.longitide, self.elevation = _set_params(ground_station_id)
 
+
     def get_coordinates(self):
         return (self.latitude, self.longitide)
     

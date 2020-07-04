@@ -28,7 +28,7 @@ def _time_range_intersection(sat1_rise, sat1_set, sat2_rise, sat2_set):
 
 def _compute_doppler_shift(sat, observer, freq, rise_time, set_time):
     """Computes the Maximum Doppler shift in the frequency at the ground station.
-    Returns the Max and min doppler shifted frequencies received at the GroundStation.
+    Returns the Max and min doppler shifted frequencies for each frequency received at the GroundStation.
 
     :param sat: Satellite
     :type sat: instance of ephem satellite
@@ -42,9 +42,10 @@ def _compute_doppler_shift(sat, observer, freq, rise_time, set_time):
     :type set_time: datetime/ephem.Date instance
     """
     # Append max and min frequencies shift to the list
-    freq_low_high = []
+    freq_low_high = {}
     for elem in freq:
         # Maximum shift observed at Rise time
+        freq_low_high[elem] = []
         observer.date = rise_time
         sat.compute(observer)
         rel_vel = sat.range_velocity
@@ -54,19 +55,19 @@ def _compute_doppler_shift(sat, observer, freq, rise_time, set_time):
         sat.compute(observer)
         rel_vel = sat.range_velocity
         shift_s = (rel_vel/C)*(elem)
-        freq_low_high.append(elem + shift_r)
-        freq_low_high.append(elem + shift_s)
+        freq_low_high[elem].append(elem + shift_r)
+        freq_low_high[elem].append(elem + shift_s)
     return freq_low_high
 
-def _in_freq_range(frequencies1, frequencies2, range):
+def _in_freq_range(frequencies1, frequencies2, f_range):
     """Checks if the frequencies of both the satellites fall under the given range.
     """    
     # compare all the frequencies
     freq_list = []
-    for freq1 in frequencies1:
-        for freq2 in frequencies2:
-            if (abs(freq2 - freq1) <= range):
-                freq_list.append((freq1, freq2))
+    for key1, val1 in frequencies1.items():
+        for key2, val2 in frequencies2.items():
+            if (abs(val1[0] - val2[0]) <= f_range) or (abs(val1[0] - val2[1]) <= f_range) or (abs(val1[1] - val2[0]) <= f_range) or (abs(val1[1] - val2[1]) <= f_range):
+                freq_list.append((key1, key2))
     if len(freq_list):
         return freq_list
     return False
@@ -113,6 +114,7 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
     # Convert the date_time interval to ephem Date instances
     e_low = ephem.Date(date_time_range[0])
     e_high = ephem.Date(date_time_range[1])
+    # Decrement e by an hour to record the observations that start slightly before e_low
     e = e_low - ephem.hour
     while (e <= e_high):
         # Set the date and time of the oberserver
@@ -145,12 +147,34 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
                 if not time_period:
                     return True
                 temp = {}
-                temp["ground_station_id"] = ground_station.get_id()
-                temp[sat1.get_name()] = []
-                temp[sat2.get_name()] = []
-                for freq in freq_list:
-                    temp[sat1.get_name()].append(freq[0])
-                    temp[sat2.get_name()].append(freq[1])
+                # Add Ground Station Meta data to the dictionary
+
+                temp["ground_station"] = {}
+                temp["ground_station"]["id"] = ground_station.get_id()
+                temp["ground_station"]["latitude"] = ground_coordinates[0]
+                temp["ground_station"]["longitude"] = ground_coordinates[1]
+                temp["ground_station"]["elevation"] = ground_station.get_elevation()
+                temp["satellites"] = []
+                # Add Satellites' Meta data to the dictionary
+                sat_dict = {}
+                sat_dict["norad_id"] = sat1.get_name().split(' ')[0]
+                sat_dict["name"] = sat1.get_name().split(' ')[1]
+                sat_dict["tle"] = sat1.get_tle()
+                sat_dict["frequencies"] = sat1.get_frequencies()
+                sat_dict["collision_frequencies"] = []
+                for elem in freq_list:
+                    sat_dict["collision_frequencies"].append(elem[0])
+                temp["satellites"].append(sat_dict)
+                sat_dict = {}
+                sat_dict["norad_id"] = sat2.get_name().split(' ')[0]
+                sat_dict["name"] = sat2.get_name().split(' ')[1]
+                sat_dict["tle"] = sat2.get_tle()
+                sat_dict["frequencies"] = sat2.get_frequencies()
+                sat_dict["collision_frequencies"] = []
+                for elem in freq_list:
+                    sat_dict["collision_frequencies"].append(elem[1])
+                temp["satellites"].append(sat_dict)
+                # Add time period of the collision
                 temp["time_period"] = intersection_range
                 count += 1
                 observations[count] = temp
