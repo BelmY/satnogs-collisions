@@ -30,9 +30,9 @@ class TestCollisions(unittest.TestCase):
 
         dt_range = [dt.datetime(2020,3,30,0,0), dt.datetime(2020,3,30,2, 0)]
 
-        observation =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
-        observation_range = observation[0][1]['time_period']
-        in_range = _check_in_range(dt_range, observation_range)
+        collision =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
+        collision_range = collision[0][1]['time_period']
+        in_range = _check_in_range(dt_range, collision_range)
         self.assertEqual(in_range, True)
     
     def test_collision_ends_after_endtime(self):
@@ -57,9 +57,9 @@ class TestCollisions(unittest.TestCase):
 
         dt_range = [dt.datetime(2020, 6, 14, 19, 47), dt.datetime(2020, 6, 14, 19, 59)]
 
-        observation =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
-        observation_range = observation[0][1]['time_period']
-        in_range = _check_in_range(dt_range, observation_range)
+        collision =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
+        collision_range = collision[0][1]['time_period']
+        in_range = _check_in_range(dt_range, collision_range)
         
         self.assertEqual(in_range, True)
     
@@ -85,9 +85,9 @@ class TestCollisions(unittest.TestCase):
 
         dt_range = [dt.datetime(2020,3,9, 2, 28), dt.datetime(2020, 3, 9, 2, 42)]
 
-        observation =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
-        observation_range = observation[0][1]['time_period']
-        in_range = _check_in_range(dt_range, observation_range)
+        collision =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
+        collision_range = collision[0][1]['time_period']
+        in_range = _check_in_range(dt_range, collision_range)
         
         self.assertEqual(in_range, True)
     
@@ -115,14 +115,14 @@ class TestCollisions(unittest.TestCase):
 
         dt_range = [dt.datetime(2019, 7, 18, 5, 51), dt.datetime(2019, 7, 18, 5, 55)]
 
-        observation =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
-        observation_range = observation[0][1]['time_period']
-        in_range = _check_in_range(observation_range, dt_range)
+        collision =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
+        collision_range = collision[0][1]['time_period']
+        in_range = _check_in_range(collision_range, dt_range)
         
         self.assertEqual(in_range, True)
     
-    def test_high_level_observations(self):
-        """High level observations
+    def test_high_level_collisions(self):
+        """High level collisions
         """
         tle = [
         "44359 - TBEX-B",
@@ -147,9 +147,9 @@ class TestCollisions(unittest.TestCase):
 
         dt_range = [dt.datetime(2019, 8, 11, 00, 28), dt.datetime(2019, 8, 11, 00, 48)]
 
-        observation =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
-        observation_range = observation[0][1]['time_period']
-        in_range = _check_in_range(dt_range, observation_range)
+        collision =  compute_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
+        collision_range = collision[0][1]['time_period']
+        in_range = _check_in_range(dt_range, collision_range)
 
         self.assertEqual(in_range, True)
     
@@ -180,5 +180,5 @@ class TestCollisions(unittest.TestCase):
 
         dt_range = [dt.datetime(2019, 8, 11, 00, 55), dt.datetime(2019, 8, 11, 00, 59)]
 
-        observation =  detect_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
-        self.assertEqual(observation[0], False)
+        collision =  detect_RF_collision_of_satellite_over_groundstation(gs, other_sat, main_sat, dt_range)
+        self.assertEqual(collision[0], False)
