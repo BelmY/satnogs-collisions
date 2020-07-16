@@ -107,14 +107,12 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
 
     # This stores an array of intervals as there could be multiple RF collisions 
     # between the  satellites at the given time interval. 
-    observations = {}
-    # Keeps track of the observation count
-    count = 0
+    collisions = []
 
     # Convert the date_time interval to ephem Date instances
     e_low = ephem.Date(date_time_range[0])
     e_high = ephem.Date(date_time_range[1])
-    # Decrement e by an hour to record the observations that start slightly before e_low
+    # Decrement e by an hour to record the collisions that start slightly before e_low
     e = e_low - ephem.hour
     while (e <= e_high):
         # Set the date and time of the oberserver
@@ -176,16 +174,15 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
                 temp["satellites"].append(sat_dict)
                 # Add time period of the collision
                 temp["time_period"] = intersection_range
-                count += 1
-                observations[count] = temp
+                collisions.append(temp)
 
         # Check for every increment after the minimum `set_time`
         e = ephem.Date(min(infoA[4], infoB[4]) + ephem.minute)
 
     # Return True or time_periods depending on the passed argument `time_period`
-    if (count == 0):
-        return observations if time_period else False
-    return observations
+    if (len(collisions) == 0):
+        return collisions if time_period else False
+    return collisions
 
 
 def detect_RF_collision_of_satellite_over_groundstation(ground_station, 

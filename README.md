@@ -7,7 +7,7 @@ SatNOGS Collisions calculates physical and radio frequency proximity and collisi
 
 To execute the tests run the following command in the current directory
 ```
-$ python3 -m unittest tests/test
+$ python -m unittest tests/test
 ```
 
 ## License
