@@ -3,6 +3,9 @@ import geog
 import math
 import numpy as np
 import shapely
+import datetime
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 from satnogs_collisions.satellite import Satellite
 
 # Define Radius of Earth in m
@@ -42,14 +45,14 @@ def compute_footprint(sat, date_time, alpha=None):
         d = d_max
 
     # Convert the data to GeoJSON format
-    p = shapely.geometry.Point([sublat, sublong])
+    p = Point([sublat, sublong])
     n = 32
     angles = np.linspace(0, 360, n)
     polygon = geog.propagate(p, angles, d)
     # footprint = {}
     # footprint["coordinates"] = polygon.tolist()
     # footprint["type"] = "Polygon"
-    footprint = shapely.Polygon(polygon.tolist())
+    footprint = Polygon(list(polygon))
 
     return footprint
 
@@ -63,102 +66,93 @@ def _in_freq_range(frequencies1, frequencies2, frequency_range):
         return freq_list
     return False
 
-def convert_dic(collisions, time_accuracy):
-
-    sat_set = set()
-    for dic in collisions:
-        arr_set.add(dic["satellites"])
-    # Array for updated collisions format
-    updated_cols = []
-    for sat_data in sat_set:
-        # Store all the footprints
-        footprints = []
-        for dic in collisions:
-            if (dic["satellites"] = sat_data):
-                footprints.append((dic["time_stamp"], dic["footprint"]))
-        # should be divided into subarrays if there are mutiple collisions
-        # spread apart within the given time range of different time_periods 
-        footprint_subarr = []
-        start_time = None
-        count = 0
-        for fp in footprints:
-            if start_time is None:
-                start_time = fp[0]
-            if ((fp[0] - start_time) == count*time_accuracy):
-                footprint_subarr.append(fp)
-            else:
-                # Current time would be the end time of the collision
-                end_time = fp[0]
-                footprint_subarr.append(fp)
-                temp = {}
-                temp["satellites"] = sat_data
-                temp["time_period"] = [start_time, end_time]
-                temp["footprints"] = footprint_subarr
-                updated_cols.append(temp)
-                # Reinitialize the variables to check for another collision
-                # in the given range if any
-                footprint_subarr.clear()
-                start_time = None
-                count = 0
-    return updated_cols
-
-def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range, alpha=None, intersection=False):
+def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range, alpha=None, time_period=False, intersection=False):
 
     low = date_time_range[0]
     high = date_time_range[1]
     collisions = []
-    while (low <= high):
-        # Compute footprints and get transponder frequecies of each satellite
-        footprints = []
-        footprints.append(compute_footprint(sat1, low, alpha=alpha))
-        footprints.append(compute_footprint(sat2, low, alpha=alpha))
+    # check frequencies
+    freq_list = _in_freq_range(sat1.get_frequencies(), sat2.get_frequencies(), frequency_range)
+    # Initialize buffers to store time_period, (timestamp,foorpint) tuples and collision dictionary
+    tp = []
+    time_fp = []
+    temp = {}
+    sat_arr = []
+    # Add Satellites' Meta data to the dictionary
+    if len(freq_list):
+        sat_dict = {}
+        sat_dict["norad_id"] = sat1.get_name().split(' ')[0]
+        sat_dict["name"] = sat1.get_name().split(' ')[1]
+        sat_dict["tle"] = sat1.get_tle()
+        sat_dict["frequencies"] = sat1.get_frequencies()
+        sat_dict["collision_frequencies"] = []
+        for elem in freq_list:
+            sat_dict["collision_frequencies"].append(elem[0])
+        sat_arr.append(sat_dict)
+        sat_dict = {}
+        sat_dict["norad_id"] = sat2.get_name().split(' ')[0]
+        sat_dict["name"] = sat2.get_name().split(' ')[1]
+        sat_dict["tle"] = sat2.get_tle()
+        sat_dict["frequencies"] = sat2.get_frequencies()
+        sat_dict["collision_frequencies"] = []
+        for elem in freq_list:
+            sat_dict["collision_frequencies"].append(elem[1])
+        sat_arr.append(sat_dict)
+    # iterate throught he while loop only when frequencies are close
+    while (len(freq_list) and low <= high):
+        # Compute footprints each satellite
+        fp1 = compute_footprint(sat1, low, alpha=alpha)
+        fp2 = compute_footprint(sat2, low, alpha=alpha)
         # Compute footprints
-        intersection_res = compute_intersection(footprints)
+        intersection_res = compute_intersection(fp1, fp2)
         if intersection_res:
-            # check frequencies
-            freq_list = _in_freq_range(sat1.get_frequencies(), sat2.get_frequencies(), frequency_range)
-            if (len(freq_list)):
-                if not intersection:
-                    return True
+            # Return true if metadata isn't required
+            if not time_period:
+                return True
+            # First new collison 
+            if not len(tp):
+                # create new dictionary
                 temp = {}
-                temp["satellites"] = []
-                # Add Satellites' Meta data to the dictionary
-                sat_dict = {}
-                sat_dict["norad_id"] = sat1.get_name().split(' ')[0]
-                sat_dict["name"] = sat1.get_name().split(' ')[1]
-                sat_dict["tle"] = sat1.get_tle()
-                sat_dict["frequencies"] = sat1.get_frequencies()
-                sat_dict["collision_frequencies"] = []
-                for elem in freq_list:
-                    sat_dict["collision_frequencies"].append(elem[0])
-                temp["satellites"].append(sat_dict)
-                sat_dict = {}
-                sat_dict["norad_id"] = sat2.get_name().split(' ')[0]
-                sat_dict["name"] = sat2.get_name().split(' ')[1]
-                sat_dict["tle"] = sat2.get_tle()
-                sat_dict["frequencies"] = sat2.get_frequencies()
-                sat_dict["collision_frequencies"] = []
-                for elem in freq_list:
-                    sat_dict["collision_frequencies"].append(elem[1])
-                temp["satellites"].append(sat_dict)
-                # Add time period of the collision
-                temp["time_stamp"] = low
-                temp["footprint"] = intersection_res
-                collisions.append(temp)
-        low += time_accuracy
-    if not intersection_res:
+                temp["satellites"] = sat_arr
+                tp = [low, low]
+                if intersection:
+                    time_fp.append((low, intersection_res))
+            else:
+                if ((low - tp[-1]) <= datetime.timedelta(seconds=time_accuracy)):
+                    # add to existing dictionary
+                    tp[-1] = low
+                    if intersection:
+                        time_fp.append((low, intersection_res))
+                else:
+                    # push dictionary containing the previous time_stamp and create new dictionary
+                    temp["time_period"] = tp
+                    if intersection:
+                        temp["footprints"] = time_fp
+                    collisions.append(temp)
+                    # create new dictionary
+                    temp = {}
+                    temp["satellites"] = sat_arr
+                    # Initialize tp and time_fp for the next pass
+                    tp = [low, low]
+                    if intersection:
+                        time_fp.append((low, intersection_res))
+        low += datetime.timedelta(seconds=time_accuracy)
+    temp["time_period"] = tp
+    if intersection:
+        temp["footprints"] = time_fp
+    collisions.append(temp)
+    if not time_period:
         return False
-    collisions = convert_dic(collisions, time_accuracy)
     return collisions
 
-def detect_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
+def detect_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
     res = []
     for sat in sats:
-        res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, intersection=False))
+        res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, time_period=False, intersection=intersection))
     return res
 
-def compute_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
+def compute_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
     res = []
     for sat in sats:
-        res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, intersection=True))
+        res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, time_period=True, intersection=intersection))
     return res
