@@ -109,33 +109,30 @@ def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range
             # Return true if metadata isn't required
             if not time_period:
                 return True
-            # First new collison 
+            # no ongoing collision, add first new collision
             if not len(tp):
-                # create new dictionary
+                # Start new collision and initialize metadata
                 temp = {}
                 temp["satellites"] = sat_arr
                 tp = [low, low]
                 if intersection:
                     time_fp.append((low, intersection_res))
+            # add values to ongoing collision
             else:
-                if ((low - tp[-1]) <= datetime.timedelta(seconds=time_accuracy)):
-                    # add to existing dictionary
-                    tp[-1] = low
-                    if intersection:
-                        time_fp.append((low, intersection_res))
-                else:
-                    # push dictionary containing the previous time_stamp and create new dictionary
-                    temp["time_period"] = tp
-                    if intersection:
-                        temp["footprints"] = time_fp
-                    collisions.append(temp)
-                    # create new dictionary
-                    temp = {}
-                    temp["satellites"] = sat_arr
-                    # Initialize tp and time_fp for the next pass
-                    tp = [low, low]
-                    if intersection:
-                        time_fp.append((low, intersection_res))
+                tp[-1] = low
+                if intersection:
+                    time_fp.append((low, intersection_res))
+        else:
+            # Add previous recelty finished collision to the list
+            if (len(tp)):
+                temp["time_period"] = tp
+                if intersection:
+                    temp["footprints"] = time_fp
+                collisions.append(temp)
+                # Initialize values for new collisions
+                tp = []
+                time_fp = []
+                temp = {}
         low += datetime.timedelta(seconds=time_accuracy)
     temp["time_period"] = tp
     if intersection:
