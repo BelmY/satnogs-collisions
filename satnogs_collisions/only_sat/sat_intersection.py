@@ -12,10 +12,30 @@ from satnogs_collisions.satellite import Satellite
 R = 6371800
 
 def compute_intersection(footprint1, footprint2):
+    """Compute the intersection of footprints using the `shapely` method.
+
+    :param footprint1: footprint of the first satellite reprsented in a GeoJson format
+    :type footprint1: Shapely polygon instance
+    :param footprint2: footprint of the second satellite reprsented in a GeoJson format
+    :type footprint2: Shapely polygon instance
+    :return: intersection results of the footprint
+    :rtype: Shapely polygon instance
+    """
     res = footprint1.intersection(footprint2)
     return res
 
 def compute_footprint(sat, date_time, alpha=None):
+    """Compute the footprints of the Satellite at a given instance.
+
+    :param sat: Satellite object
+    :type sat: instance of the satnogs-collisions Satellite object
+    :param date_time: desired date and time of the satellite footprint
+    :type date_time: Python datetime object
+    :param alpha: half angle given by user in degrees, defaults to None
+    :type alpha: int, optional
+    :return: Footprint of the Satllite in GeoJSON format
+    :rtype: Shapely Polygon instance
+    """
 
     # Read TLE of the sateellite and create an Ephem instance
     line1, line2, line3 = sat.get_tle()
@@ -57,6 +77,8 @@ def compute_footprint(sat, date_time, alpha=None):
     return footprint
 
 def _in_freq_range(frequencies1, frequencies2, frequency_range):
+    """Check if difference between thefrequencies lies in the given range
+    """
     freq_list = []
     for val1 in frequencies1:
         for val2 in frequencies2:
@@ -67,7 +89,27 @@ def _in_freq_range(frequencies1, frequencies2, frequency_range):
     return False
 
 def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range, alpha=None, time_period=False, intersection=False):
+    """Helper function to check collision between Satellites in given time range.
 
+    :param sat1: Satellite object
+    :type sat1: instance of the satnogs-collisions Satellite object
+    :param sat2: Satellite object
+    :type sat2: instance of the satnogs-collisions Satellite object
+    :param date_time_range: desired date and time of the satellite footprint
+    :type date_time_range: Python datetime object
+    :param time_accuracy: incrments of the time parameter in the given range to check for collisions in seconds
+    :type time_accuracy: int
+    :param frequency_range: frequency in Hz
+    :type frequency_range: int
+    :param alpha: half angle given by user in degrees, defaults to None
+    :type alpha: int, optional
+    :param time_period: parameter set to add time_period of the collisions to the Metadata, defaults to False
+    :type time_period: bool, optional
+    :param intersection: parameter set to add footprint of the collisions to the Metadata, defaults to False
+    :type intersection: bool, optional
+    :return: bool/ Array of time periods if there is a collision
+    :rtype: bool/list
+    """
     low = date_time_range[0]
     high = date_time_range[1]
     collisions = []
@@ -143,12 +185,50 @@ def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range
     return collisions
 
 def detect_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
+    """Detects if there is a collision possible over any region given the date_time_range and the satelitte details
+
+    :param sats: List of Satellites
+    :type sats: list
+    :param main_sat: Satellite
+    :type main_sat: Instance of `Satellite`
+    :param date_time_range: User defined date-time range
+    :type date_time_range: datetime
+    :param time_accuracy: incrments of the time parameter in the given range to check for collisions in seconds
+    :type time_accuracy: int
+    :param frequency_range: Frequency in Hz, defaults to 30000
+    :type frequency_range: int, optional
+    :param alpha: half angle given by user in degrees, defaults to None
+    :type alpha: int, optional
+    :param intersection: parameter set to add footprint of the collisions to the Metadata, defaults to False
+    :type intersection: bool, optional
+    :return: list boolean values of collisions between satellites
+    :rtype: list
+    """
     res = []
     for sat in sats:
         res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, time_period=False, intersection=intersection))
     return res
 
 def compute_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
+    """Detects if there is a collision possible over any region given the date_time_range and the satelitte details
+
+    :param sats: List of Satellites
+    :type sats: list
+    :param main_sat: Satellite
+    :type main_sat: Instance of `Satellite`
+    :param date_time_range: User defined date-time range
+    :type date_time_range: datetime
+    :param time_accuracy: incrments of the time parameter in the given range to check for collisions in seconds
+    :type time_accuracy: int
+    :param frequency_range: Frequency in Hz, defaults to 30000
+    :type frequency_range: int, optional
+    :param alpha: half angle given by user in degrees, defaults to None
+    :type alpha: int, optional
+    :param intersection: parameter set to add footprint of the collisions to the Metadata, defaults to False
+    :type intersection: bool, optional
+    :return: Array of collisions containing the metadate of each collision along with it
+    :rtype: list
+    """
     res = []
     for sat in sats:
         res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, time_period=True, intersection=intersection))
