@@ -73,11 +73,10 @@ def compute_footprint(sat, date_time, alpha=None):
     # footprint["coordinates"] = polygon.tolist()
     # footprint["type"] = "Polygon"
     footprint = Polygon(list(polygon))
-
     return footprint
 
 def _in_freq_range(frequencies1, frequencies2, frequency_range):
-    """Check if difference between thefrequencies lies in the given range
+    """Check if difference between the frequencies lie in the given range
     """
     freq_list = []
     for val1 in frequencies1:
@@ -165,7 +164,7 @@ def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range
                 if intersection:
                     time_fp.append((low, intersection_res))
         else:
-            # Add previous recelty finished collision to the list
+            # Add previous recenlty finished collision to the list
             if (len(tp)):
                 temp["time_period"] = tp
                 if intersection:
