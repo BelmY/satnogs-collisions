@@ -1,3 +1,4 @@
+import requests
 import ephem
 import geog
 import math
@@ -10,6 +11,24 @@ from satnogs_collisions.satellite import Satellite
 
 # Define Radius of Earth in m
 R = 6371800
+
+# Used when `detect_collisions_satellite`  method is called multiple times
+all_sats = []
+
+def _get_all_satellite():
+    resonse = requests.get("https://db.satnogs.org/api/transmitters/")
+    data = response.json()
+    norad_ids = set()
+    for sat_detail in data:
+        norad_ids.add(sat_detail["norad_cat_id"])
+    for norad_id in norad_ids:                                 # Get the list of all satellites
+        frequencies = []
+        for sat_detail in data:
+            if (sat_detail["norad_cat_id"] == norad_id):
+                frequencies.append(sat_detail["downlink_low"])
+        sat = Satellite(norad_id=norad_id, frequencies=frequencies)
+        all_sats.append(sat)
+    return
 
 def compute_intersection(footprint1, footprint2):
     """Compute the intersection of footprints using the `shapely` method.
@@ -183,7 +202,7 @@ def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range
         return False
     return collisions
 
-def detect_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
+def detect_RF_collision_of_satellite_with_satellites(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
     """Detects if there is a collision possible between main_sat and other satellites over any region given the date_time_range and the satelitte details
 
     :param sats: List of Satellites
@@ -208,7 +227,7 @@ def detect_collisions(sats, main_sat, date_time_range, time_accuracy, frequency_
         res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, time_period=False, intersection=intersection))
     return res
 
-def detect_collisions_satellites(sats, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
+def detect_RF_collision_of_satellites(sats, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
     """Detects the collision possible between every sat with all other satellites over any region given the date_time_range and the satelitte details
 
     :param sats: List of all Satellites
@@ -223,7 +242,18 @@ def detect_collisions_satellites(sats, date_time_range, time_accuracy, frequency
         res = detect_collisions_satellite(sat_list, main_sat, date_time_range, time_accuracy, frequency_range=frequency_range, alpha=alpha, intersection=intersection)
         all_collisions[main_sat.get_name()] = res
 
-def compute_collisions_satellite(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
+def detect_RF_collision_of_satellite_with_all_satellites(sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
+    """Detects collisions of one satellite with all the other satellites in the Network.
+
+    :param sat: The one satellite we desire to compare with
+    :type sat: Satellite instance
+
+    """
+    if not len(all_sats):
+        _get_all_satellite()
+    detect_collisions_satellites(all_sats, sat, date_time_range, time_accuracy, frequency_range=frequency_range, alpha=alpha)
+
+def compute_RF_collision_of_satellite_with_satellites(sats, main_sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
     """Computes the collision possible between main_sat and other satellites over any region given the date_time_range and the satelitte details
 
     :param sats: List of Satellites
@@ -248,7 +278,7 @@ def compute_collisions_satellite(sats, main_sat, date_time_range, time_accuracy,
         res.append(_check_collision(sat, main_sat, date_time_range, time_accuracy, frequency_range, alpha=alpha, time_period=True, intersection=intersection))
     return res
 
-def compute_collisions_satellites(sats, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
+def compute_RF_collision_of_satellites(sats, date_time_range, time_accuracy, frequency_range=30000, alpha=None, intersection=False):
     """Computes the collision possible between every sat with all other satellites over any region given the date_time_range and the satelitte details
 
     :param sats: List of all Satellites
@@ -262,3 +292,14 @@ def compute_collisions_satellites(sats, date_time_range, time_accuracy, frequenc
                 sat_list.append(sat)
         res = compute_collisions_satellite(sat_list, main_sat, date_time_range, time_accuracy, frequency_range=frequency_range, alpha=alpha, intersection=intersection)
         all_collisions[main_sat.get_name()] = res
+    
+def compute_RF_collision_of_satellite_with_all_satellites(sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
+    """Computes collisions of one satellite with all the other satellites in the Network.
+
+    :param sat: The one satellite we desire to compare with
+    :type sat: Satellite instance
+
+    """
+    if not len(all_sats):
+        _get_all_satellite()
+    compute_collisions_satellites(all_sats, sat, date_time_range, time_accuracy, frequency_range=frequency_range, alpha=alpha)

@@ -34,7 +34,10 @@ class Satellite:
             self.frequencies = frequencies
         elif (norad_id):
             self.tle = _set_tle(norad_id)
-            self.frequencies = _set_frequencies(norad_id)
+            if not frequencies:
+                self.frequencies = _set_frequencies(norad_id)
+            else:
+                self.frequencies = frequencies
         else:
             raise ValueError("Values Missing. Must provide either the 'Norad ID' or the 'TLE and frequency' of satellite")
 
