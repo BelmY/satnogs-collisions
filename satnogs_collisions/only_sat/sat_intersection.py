@@ -9,11 +9,8 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 from satnogs_collisions.satellite import Satellite
 
-# Define Radius of Earth in m
-R = 6371800
-
-# Used when `detect_collisions_satellite`  method is called multiple times
-all_sats = []
+R = 6371800                                     # Define Radius of Earth in m
+all_sats = []                                   # Used when `detect_collisions_satellite`  method is called multiple times
 
 def _get_all_satellite():
     resonse = requests.get("https://db.satnogs.org/api/transmitters/")
@@ -56,41 +53,31 @@ def compute_footprint(sat, date_time, alpha=None):
     :rtype: Shapely Polygon instance
     """
 
-    # Read TLE of the sateellite and create an Ephem instance
-    line1, line2, line3 = sat.get_tle()
+    line1, line2, line3 = sat.get_tle()                     # Read TLE of the sateellite and create an Ephem instance
     sat = ephem.readtle(line1, line2, line3)
     sat.compute(date_time)
 
-    # Sub-satellite points
-    sublat = sat.sublat
+    sublat = sat.sublat                                     # Sub-satellite points
     sublong = sat.sublong
 
-    # height of the satellite above sea level in m
-    h = sat.elevation
+    h = sat.elevation                                       # height of the satellite above sea level in m
 
-    # Diameter of the circular coverage
-    d = None
+    d = None                                                # Diameter of the circular coverage
     if alpha:
         theta = math.degrees(math.asin(sin(alpha)*(R/(R+h)))) - alpha
         theta = math.radians(theta)
-        # diameter
-        d = 2*R*theta
+        d = 2*R*theta                                       # diameter
     else:
-        # Compute d as maximum d if alpha isn't defined
-        rho = math.degrees(math.asin((R/(R+h))))
+        rho = math.degrees(math.asin((R/(R+h))))            # Compute d as maximum d if alpha isn't defined
         lam = 90 - rho
         lam = math.radians(lam)
         d_max = R*(math.tan(lam))
         d = d_max
 
-    # Convert the data to GeoJSON format
-    p = Point([sublat, sublong])
+    p = Point([sublat, sublong])                            # Convert the data to GeoJSON format
     n = 32
     angles = np.linspace(0, 360, n)
     polygon = geog.propagate(p, angles, d)
-    # footprint = {}
-    # footprint["coordinates"] = polygon.tolist()
-    # footprint["type"] = "Polygon"
     footprint = Polygon(list(polygon))
     return footprint
 
@@ -131,15 +118,12 @@ def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range
     low = date_time_range[0]
     high = date_time_range[1]
     collisions = []
-    # check frequencies
     freq_list = _in_freq_range(sat1.get_frequencies(), sat2.get_frequencies(), frequency_range)
-    # Initialize buffers to store time_period, (timestamp,foorpint) tuples and collision dictionary
-    tp = []
-    time_fp = []
-    temp = {}
+    tp = []                                                 # Initialize buffers to store time_period...
+    time_fp = []                                            # ... (timestamp,foorpint) tuples...
+    temp = {}                                               # ... and collision dictionary.
     sat_arr = []
-    # Add Satellites' Meta data to the dictionary
-    if len(freq_list):
+    if len(freq_list):                                      # Add Satellites' Meta data to the dictionary
         sat_dict = {}
         sat_dict["norad_id"] = sat1.get_name().split(' ')[0]
         sat_dict["name"] = sat1.get_name().split(' ')[1]
@@ -158,39 +142,30 @@ def _check_collision(sat1, sat2, date_time_range, time_accuracy, frequency_range
         for elem in freq_list:
             sat_dict["collision_frequencies"].append(elem[1])
         sat_arr.append(sat_dict)
-    # iterate throught he while loop only when frequencies are close
-    while (len(freq_list) and low <= high):
-        # Compute footprints each satellite
+    while (len(freq_list) and low <= high):                 # iterate throught he while loop only when frequencies are close
         fp1 = compute_footprint(sat1, low, alpha=alpha)
-        fp2 = compute_footprint(sat2, low, alpha=alpha)
-        # Compute footprints
-        intersection_res = compute_intersection(fp1, fp2)
+        fp2 = compute_footprint(sat2, low, alpha=alpha)     # Compute footprints each satellite
+        intersection_res = compute_intersection(fp1, fp2)   # Compute footprints
         if intersection_res:
-            # Return true if metadata isn't required
-            if not time_period:
+            if not time_period:                             # Return true if metadata isn't required
                 return True
-            # no ongoing collision, add first new collision
-            if not len(tp):
-                # Start new collision and initialize metadata
-                temp = {}
+            if not len(tp):                                 # no ongoing collision, add first new collision
+                temp = {}                                   # Start new collision and initialize metadata
                 temp["satellites"] = sat_arr
                 tp = [low, low]
                 if intersection:
                     time_fp.append((low, intersection_res))
-            # add values to ongoing collision
-            else:
+            else:                                           # add values to ongoing collision
                 tp[-1] = low
                 if intersection:
                     time_fp.append((low, intersection_res))
         else:
-            # Add previous recenlty finished collision to the list
-            if (len(tp)):
+            if (len(tp)):                                   # Add previous recenlty finished collision to the list
                 temp["time_period"] = tp
                 if intersection:
                     temp["footprints"] = time_fp
                 collisions.append(temp)
-                # Initialize values for new collisions
-                tp = []
+                tp = []                                     # Initialize values for new collisions
                 time_fp = []
                 temp = {}
         low += datetime.timedelta(seconds=time_accuracy)

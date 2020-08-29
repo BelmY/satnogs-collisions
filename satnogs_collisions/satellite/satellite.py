@@ -11,8 +11,7 @@ def _set_frequencies(norad_id):
     downlink_lows = set()
     for elem in data:
         downlink_lows.add(elem["downlink_low"])
-    # Return a list for easy access of elements
-    return list(downlink_lows)
+    return list(downlink_lows)                                  # Return a list for easy access of elements
 
 class Satellite:
     """Class for the Satellite objects.

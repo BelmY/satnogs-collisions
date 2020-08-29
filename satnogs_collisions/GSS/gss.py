@@ -3,8 +3,7 @@ from satnogs_collisions.satellite import Satellite
 from satnogs_collisions.ground_station import GroundStation
 from datetime import datetime
 
-# Define speed of light
-C = 299792458.0
+C = 299792458.0                                         # Define speed of light
 
 def _time_range_intersection(sat1_rise, sat1_set, sat2_rise, sat2_set):
     """Computes the intersection of the rise and set time intervals of the 2 satellites.
@@ -41,17 +40,14 @@ def _compute_doppler_shift(sat, observer, freq, rise_time, set_time):
     :param set_time: Set time of Satellite
     :type set_time: datetime/ephem.Date instance
     """
-    # Append max and min frequencies shift to the list
-    freq_low_high = {}
-    for elem in freq:
-        # Maximum shift observed at Rise time
-        freq_low_high[elem] = []
+    freq_low_high = {}                                          # Append max and min frequencies shift to the list
+    for elem in freq:   
+        freq_low_high[elem] = []                                # Maximum shift observed at Rise time
         observer.date = rise_time
         sat.compute(observer)
         rel_vel = sat.range_velocity
         shift_r = (rel_vel/C)*(elem)
-        # Maximum shift observed at Set time
-        observer.date = set_time
+        observer.date = set_time                                # Maximum shift observed at Set time
         sat.compute(observer)
         rel_vel = sat.range_velocity
         shift_s = (rel_vel/C)*(elem)
@@ -62,8 +58,7 @@ def _compute_doppler_shift(sat, observer, freq, rise_time, set_time):
 def _in_freq_range(frequencies1, frequencies2, f_range):
     """Checks if the frequencies of both the satellites fall under the given range.
     """    
-    # compare all the frequencies
-    freq_list = []
+    freq_list = []                                              # compare all the frequencies
     for key1, val1 in frequencies1.items():
         for key2, val2 in frequencies2.items():
             if (abs(val1[0] - val2[0]) <= f_range) or (abs(val1[0] - val2[1]) <= f_range) or (abs(val1[1] - val2[0]) <= f_range) or (abs(val1[1] - val2[1]) <= f_range):
@@ -90,17 +85,13 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
     :return: bool/ Array of time periods if there is a collision
     :rtype: bool/list
     """
-
-    # Extract ground coordinates
-    ground_coordinates = ground_station.get_coordinates()
-    # Define an Epem Observer
-    observer = ephem.Observer()
+    ground_coordinates = ground_station.get_coordinates()           # Extract ground coordinates  
+    observer = ephem.Observer()                                     # Define an Epem Observer
     observer.elevation = ground_station.get_elevation()
     observer.lat = str(ground_coordinates[0])
     observer.lon = str(ground_coordinates[1])
 
-    # Read TLE of both the sateellites and create an instance
-    line1, line2, line3 = sat1.get_tle()
+    line1, line2, line3 = sat1.get_tle()                            # Read TLE of both the sateellites and create an instance
     satA = ephem.readtle(line1, line2, line3)
     line1, line2, line3 = sat2.get_tle()
     satB = ephem.readtle(line1, line2, line3)
@@ -109,14 +100,12 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
     # between the  satellites at the given time interval. 
     collisions = []
 
-    # Convert the date_time interval to ephem Date instances
-    e_low = ephem.Date(date_time_range[0])
+    e_low = ephem.Date(date_time_range[0])                          # Convert the date_time interval to ephem Date instances
     e_high = ephem.Date(date_time_range[1])
-    # Decrement e by an hour to record the collisions that start slightly before e_low
-    e = e_low - ephem.hour
+    e = e_low - ephem.hour                                          # Decrement e by an hour to record the collisions that start slightly before e_low
     while (e <= e_high):
-        # Set the date and time of the oberserver
-        observer.date = e
+        observer.date = e                                           # Set the date and time of the oberserver
+
         # `next_pass` computes the rise_time, Rise azimuth ,maximum_atlitude,
         # max_altitude_time, set_time and set Azimuth of the Satellite.
         infoA = observer.next_pass(satA)
@@ -145,16 +134,13 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
                 if not time_period:
                     return True
                 temp = {}
-                # Add Ground Station Meta data to the dictionary
-
-                temp["ground_station"] = {}
+                temp["ground_station"] = {}                                         # Add Ground Station Meta data to the dictionary
                 temp["ground_station"]["id"] = ground_station.get_id()
                 temp["ground_station"]["latitude"] = ground_coordinates[0]
                 temp["ground_station"]["longitude"] = ground_coordinates[1]
                 temp["ground_station"]["elevation"] = ground_station.get_elevation()
                 temp["satellites"] = []
-                # Add Satellites' Meta data to the dictionary
-                sat_dict = {}
+                sat_dict = {}                                                       # Add Satellites' Meta data to the dictionary
                 sat_dict["norad_id"] = sat1.get_name().split(' ')[0]
                 sat_dict["name"] = sat1.get_name().split(' ')[1]
                 sat_dict["tle"] = sat1.get_tle()
@@ -172,15 +158,12 @@ def _check_collision(ground_station, sat1, sat2, date_time_range, frequency_rang
                 for elem in freq_list:
                     sat_dict["collision_frequencies"].append(elem[1])
                 temp["satellites"].append(sat_dict)
-                # Add time period of the collision
-                temp["time_period"] = intersection_range
+                temp["time_period"] = intersection_range                            # Add time period of the collision
                 collisions.append(temp)
 
-        # Check for every increment after the minimum `set_time`
-        e = ephem.Date(min(infoA[4], infoB[4]) + ephem.minute)
+        e = ephem.Date(min(infoA[4], infoB[4]) + ephem.minute)                      # Check for every increment after the minimum `set_time`
 
-    # Return True or time_periods depending on the passed argument `time_period`
-    if (len(collisions) == 0):
+    if (len(collisions) == 0):                                                      # Return True or time_periods depending on the passed argument `time_period`
         return collisions if time_period else False
     return collisions
 
@@ -221,8 +204,7 @@ def detect_RF_collision_of_satellite_over_groundstations(ground_stations,
     :rtype: dictionary
     """
     all_rf_collisions = {}
-    # Ground Station index for the dictionary.
-    id = 1
+    id = 1                                                      # Ground Station index for the dictionary.
     for ground_station in ground_stations:
         rf_collisions = []
         for sat in satellites:
@@ -264,7 +246,6 @@ def detect_RF_collision_of_satellites_over_groundstations(ground_stations,
     :rtype: dictionary
     """
     all_rf_collisions = {}
-    # Ground Station index for the dictionary.
     id = 1
     for ground_station in ground_stations:
         all_rf_collisions[id] = (detect_RF_collision_of_satellites_over_groundstation(ground_station, satellites, date_time_range,
