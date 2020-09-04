@@ -15,8 +15,12 @@ __all__ = [
     compute_RF_collision_of_satellites_over_groundstation, 
     compute_RF_collision_of_satellites_over_groundstations,
 
-    detect_collisions,
-    compute_collisions,
+    detect_RF_collision_of_satellite_with_satellites,
+    detect_RF_collision_of_satellites,
+    detect_RF_collision_of_satellites_with_all_satellites,
+    compute_RF_collision_of_satellite_with_satellites,
+    compute_RF_collision_of_satellites,
+    compute_RF_collision_of_satellites_with_all_satellites,
 
     GroundStation,
     

@@ -218,7 +218,7 @@ def detect_RF_collision_of_satellites(sats, date_time_range, time_accuracy, freq
         all_collisions[main_sat.get_name()] = res
     return all_collisions
 
-def detect_RF_collision_of_satellite_with_all_satellites(sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
+def detect_RF_collision_of_satellites_with_all_satellites(sat, date_time_range, time_accuracy, frequency_range=30000, alpha=None):
     """Detects collisions of one satellite with all the other satellites in the Network.
 
     :param sat: The one satellite we desire to compare with
