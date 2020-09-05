@@ -31,7 +31,7 @@ The methods provided by the GSS sub-module are as follows:
 * ***compute_RF_collision_of_satellites_over_groundstation*** - Detect  the collisions between multiple satellites over a single Ground Station.
 * ****compute_RF_collision_of_satellites_over_groundstations*** - Detect  the collisions between  multiple satellites over Ground Stations.
 
-The ***compute_collisons*** methods mentioned above return the the RF collsions that contains metadata of the collisions like time_period, and satelliets frequencies of the collision.
+The ***compute_collisons*** methods mentioned above return the the RF collsions that contains metadata of the collisions like time_period, and satellites frequencies of the collision.
 
 ### OnlySat Module
 This module provides methods to compute the region over which the Satellites may have an RF collision.
